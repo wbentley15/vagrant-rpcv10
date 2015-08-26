@@ -8,6 +8,7 @@ $script = <<SCRIPT
 cat << EOF >> /etc/hosts
 172.29.236.2 021579-infra01
 172.29.236.5 021579-logging01
+172.29.236.6 021579-storage01
 172.29.236.10 021579-compute001
 EOF
 SCRIPT
@@ -80,6 +81,37 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
   end
   # End logging1
+  
+  # Begin storage1
+  config.vm.define "storage1" do |storage1_config|
+    storage1_config.vm.hostname = "021579-storage01"
+
+    storage1_config.vm.provision "shell", inline: $script
+
+    # eth1
+    storage1_config.vm.network "private_network", ip: "172.29.236.6"
+    # eth2
+    storage1_config.vm.network "private_network", ip: "172.29.240.6"
+    # eth3
+    storage1_config.vm.network "private_network", ip: "172.29.236.16"
+        
+    storage1_config.vm.provider "vmware_fusion" do |v|
+        v.vmx["memsize"] = "2048"
+        v.vmx["numvcpus"] = "1"
+    end
+
+    storage1_config.vm.provider "virtualbox" do |v|
+        v.customize ["modifyvm", :id, "--memory", "2048"]
+        v.customize ["modifyvm", :id, "--cpus", "1"]
+        v.customize ["modifyvm", :id, "--nicpromisc4", "allow-all"]
+    end
+    
+    storage1_config.vm.provision "ansible" do |ansible|
+    	ansible.extra_vars = { ansible_ssh_user: 'vagrant' }
+        ansible.playbook = "provisioning/base.yml"
+    end
+  end
+  # End storage1
   
   # Begin compute1
   config.vm.define "compute1" do |compute1_config|
